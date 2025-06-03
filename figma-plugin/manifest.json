@@ -1,0 +1,19 @@
+{
+  "name": "Mik ai chat",
+  "id": "Mik-ai-chat",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": [
+    "figma"
+  ],
+  "networkAccess": {
+    "allowedDomains": [
+      "http://localhost:3000",
+      "https://localhost:3000"
+    ],
+    "reasoning": "Плагин подключается к локальному серверу для обработки запросов к Mik ai chat"
+  }
+}

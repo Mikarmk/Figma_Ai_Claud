@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mik ai chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-size: 14px;
+        }
+
+        .chat-container {
+            width: 100%;
+            height: 100vh;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+
+        .chat-messages {
+            flex: 1;
+            padding: 12px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            min-height: 0;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 8px 12px;
+            border-radius: 12px;
+            word-wrap: break-word;
+            line-height: 1.4;
+            font-size: 13px;
+        }
+
+        .user-message {
+            background: #007bff;
+            color: white;
+            align-self: flex-end;
+            margin-left: auto;
+        }
+
+        .bot-message {
+            background: #f1f3f5;
+            color: #333;
+            align-self: flex-start;
+            border: 1px solid #e9ecef;
+            position: relative;
+        }
+
+        .insert-button {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .bot-message:hover .insert-button {
+            opacity: 1;
+        }
+
+        .insert-button:hover {
+            background: #218838;
+        }
+
+        .chat-input-container {
+            padding: 12px;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 16px;
+            font-size: 13px;
+            outline: none;
+            resize: none;
+            min-height: 32px;
+            max-height: 80px;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover {
+            transform: translateY(-1px);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #666;
+            font-style: italic;
+            font-size: 12px;
+        }
+
+        .loading-dots {
+            display: inline-flex;
+            gap: 2px;
+        }
+
+        .loading-dot {
+            width: 4px;
+            height: 4px;
+            background: #666;
+            border-radius: 50%;
+            animation: loading 1.4s infinite ease-in-out;
+        }
+
+        .loading-dot:nth-child(1) { animation-delay: -0.32s; }
+        .loading-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes loading {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 8px;
+            font-size: 12px;
+            color: #666;
+            background: #e9ecef;
+            margin: 4px 0;
+            border-radius: 6px;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+             Mik AI Chat
+        </div>
+        
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot-message">
+                Привет! Я Mik AI в Figma. Начните общение прямо сейчас! Вы можете вставлять мои ответы как текст в ваш дизайн.
+            </div>
+        </div>
+        
+        <div class="chat-input-container">
+            <textarea 
+                class="chat-input" 
+                id="messageInput" 
+                placeholder="Введите ваше сообщение..."
+                rows="1"
+            ></textarea>
+            <button class="send-button" id="sendButton">
+                Отправить
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+
+        // Автоматическое изменение размера textarea
+        messageInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+        });
+
+        function addMessage(content, isUser = false, isError = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}${isError ? ' error-message' : ''}`;
+            messageDiv.textContent = content;
+            
+            // Добавляем кнопку "Вставить в Figma" для ответов бота
+            if (!isUser && !isError) {
+                const insertButton = document.createElement('button');
+                insertButton.className = 'insert-button';
+                insertButton.textContent = 'Вставить';
+                insertButton.onclick = () => insertTextToFigma(content);
+                messageDiv.appendChild(insertButton);
+            }
+            
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        function addStatusMessage(content, isSuccess = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `status-message ${isSuccess ? 'success-message' : ''}`;
+            messageDiv.textContent = content;
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            
+            // Удаляем статусное сообщение через 3 секунды
+            setTimeout(() => {
+                if (messageDiv.parentNode) {
+                    messageDiv.remove();
+                }
+            }, 3000);
+        }
+
+        function addLoadingMessage() {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message bot-message loading';
+            messageDiv.innerHTML = `
+                Claude печатает
+                <div class="loading-dots">
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                    <div class="loading-dot"></div>
+                </div>
+            `;
+            messageDiv.id = 'loadingMessage';
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            return messageDiv;
+        }
+
+        function removeLoadingMessage() {
+            const loadingMessage = document.getElementById('loadingMessage');
+            if (loadingMessage) {
+                loadingMessage.remove();
+            }
+        }
+
+        function insertTextToFigma(text) {
+            parent.postMessage({
+                pluginMessage: {
+                    type: 'insert-text',
+                    text: text
+                }
+            }, '*');
+        }
+
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            
+            if (!message) return;
+
+            // Добавляем сообщение пользователя
+            addMessage(message, true);
+            messageInput.value = '';
+            messageInput.style.height = 'auto';
+            
+            // Отключаем кнопку и показываем загрузку
+            sendButton.disabled = true;
+            const loadingMessage = addLoadingMessage();
+
+            try {
+                // Выполняем сетевой запрос из UI (где доступен fetch)
+                const response = await fetch('http://localhost:3000/api/figma-chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        message: message
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const reply = data.reply;
+
+                // Отправляем успешный ответ в основной код плагина
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'api-response',
+                        success: true,
+                        reply: reply
+                    }
+                }, '*');
+
+            } catch (error) {
+                console.error('Ошибка при обращении к серверу:', error);
+                
+                // Отправляем ошибку в основной код плагина
+                parent.postMessage({
+                    pluginMessage: {
+                        type: 'api-response',
+                        success: false,
+                        error: 'Произошла ошибка при обработке запроса. Убедитесь, что сервер запущен на localhost:3000.'
+                    }
+                }, '*');
+            }
+        }
+
+        // Обработка сообщений от основного кода плагина
+        window.onmessage = (event) => {
+            const msg = event.data.pluginMessage;
+            
+            if (msg.type === 'message-response') {
+                removeLoadingMessage();
+                sendButton.disabled = false;
+                
+                if (msg.success) {
+                    addMessage(msg.reply);
+                } else {
+                    addMessage(msg.error || 'Произошла ошибка', false, true);
+                }
+                
+                messageInput.focus();
+            }
+            
+            if (msg.type === 'text-inserted') {
+                if (msg.success) {
+                    addStatusMessage('Текст успешно вставлен в Figma!', true);
+                }
+            }
+            
+            if (msg.type === 'plugin-ready') {
+                console.log('Плагин готов к работе');
+            }
+        };
+
+        // Обработчики событий
+        sendButton.addEventListener('click', sendMessage);
+        
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+
+        // Фокус на поле ввода при загрузке
+        messageInput.focus();
+    </script>
+</body>
+</html>
